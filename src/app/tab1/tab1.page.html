@@ -3,7 +3,6 @@
     <ion-title>Rick & Morty Catalog</ion-title>
   </ion-toolbar>
   <ion-toolbar color="primary">
-    <!-- R3: Búsqueda con ion-searchbar -->
     <ion-searchbar 
       placeholder="Buscar personaje..." 
       (ionInput)="onSearchChange($event)" 
@@ -14,7 +13,6 @@
 
 <ion-content class="ion-padding">
 
-  <!-- R5: Loading inicial -->
   @if (isLoading && characters.length === 0) {
     <div class="ion-text-center ion-padding">
       <ion-spinner name="crescent"></ion-spinner>
@@ -22,7 +20,6 @@
     </div>
   }
 
-  <!-- R5: Estado de Error de Red con botón de Reintento -->
   @if (hasError && characters.length === 0) {
     <div class="ion-text-center ion-padding">
       <p>Ocurrió un error al cargar los datos.</p>
@@ -33,14 +30,12 @@
     </div>
   }
 
-  <!-- R5: Estado de Lista Vacía -->
   @if (!isLoading && !hasError && characters.length === 0) {
     <div class="ion-text-center ion-padding">
       <p>No se encontraron resultados para la búsqueda.</p>
     </div>
   }
 
-  <!-- R1: Listado de tarjetas con mínimo 2 atributos -->
   <ion-list>
     @for (item of characters; track item.id) {
       <ion-item button lines="full">
@@ -55,18 +50,17 @@
         <ion-badge [color]="item.status === 'Alive' ? 'success' : 'danger'" slot="end">
           {{ item.status }}
         </ion-badge>
-        <!-- R6: Botón de Favoritos -->
-        <ion-button fill="clear" slot="end" (click)="toggleFavorite(item.id, $event)">
+        <!-- Corregido: Pasamos la variable item completa y usamos favService.isFavorite -->
+        <ion-button fill="clear" slot="end" (click)="toggleFavorite(item, $event)">
           <ion-icon 
-            [name]="isFavorite(item.id) ? 'star' : 'star-outline'" 
-            [color]="isFavorite(item.id) ? 'warning' : 'medium'">
+            [name]="favService.isFavorite(item.id) ? 'star' : 'star-outline'" 
+            [color]="favService.isFavorite(item.id) ? 'warning' : 'medium'">
           </ion-icon>
         </ion-button>
       </ion-item>
     }
   </ion-list>
 
-  <!-- R2: Infinite Scrolling Obligatorio -->
   <ion-infinite-scroll (ionInfinite)="loadMore($event)">
     <ion-infinite-scroll-content 
       loadingSpinner="bubbles" 

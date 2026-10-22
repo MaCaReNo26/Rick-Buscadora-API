@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { 
@@ -6,10 +6,10 @@ import {
   IonList, IonItem, IonAvatar, IonLabel, IonInfiniteScroll, 
   IonInfiniteScrollContent, IonSpinner, IonButton, IonIcon, IonBadge 
 } from '@ionic/angular';
-import { Preferences } from '@capacitor/preferences';
 import { addIcons } from 'ionicons';
 import { star, starOutline, reloadOutline } from 'ionicons/icons';
 import { ApiService } from '../services/api';
+import { FavoritesService } from '../services/favorites.service';
 import { Character } from '../character/models';
 
 @Component({
@@ -24,6 +24,8 @@ import { Character } from '../character/models';
   ]
 })
 export class Tab1Page implements OnInit {
+  @ViewChild(IonInfiniteScroll) infiniteScroll?: IonInfiniteScroll;
+
   characters: Character[] = [];
   currentPage: number = 1;
   totalPages: number = 1;
@@ -31,18 +33,18 @@ export class Tab1Page implements OnInit {
   
   isLoading: boolean = false;
   hasError: boolean = false;
-  favorites: number[] = [];
 
-  constructor(private apiService: ApiService) {
+  constructor(
+    private apiService: ApiService,
+    public favService: FavoritesService
+  ) {
     addIcons({ star, starOutline, reloadOutline });
   }
 
-  async ngOnInit() {
-    await this.loadFavorites();
+  ngOnInit() {
     this.loadData();
   }
 
-  // R1 y R5: Carga de datos con manejo de estados
   loadData(event?: any) {
     if (this.isLoading) return;
     this.isLoading = true;
@@ -51,62 +53,54 @@ export class Tab1Page implements OnInit {
     this.apiService.getCharacters(this.currentPage, this.searchTerm).subscribe({
       next: (response) => {
         this.totalPages = response.info.pages;
-        // R2: Anexar los datos sin duplicar
         this.characters = [...this.characters, ...response.results];
         this.isLoading = false;
 
         if (event) {
           event.target.complete();
           if (this.currentPage >= this.totalPages) {
-            event.target.disabled = true; // Deshabilita infinite scroll al finalizar registros
+            event.target.disabled = true;
           }
         }
       },
-      error: () => {
+      error: (err) => {
         this.isLoading = false;
-        this.hasError = true;
+        if (err.status !== 404) {
+          this.hasError = true;
+        }
         if (event) {
           event.target.complete();
+          event.target.disabled = true;
         }
       }
     });
   }
 
-  // R2: Evento para infinite scroll
   loadMore(event: any) {
     if (this.currentPage < this.totalPages) {
       this.currentPage++;
       this.loadData(event);
     } else {
+      event.target.complete();
       event.target.disabled = true;
     }
   }
 
-  // R3: Búsqueda y reinicio de estado y paginación
   onSearchChange(event: any) {
-    this.searchTerm = event.detail.value;
+    this.searchTerm = event.detail.value ? event.detail.value.trim() : '';
     this.currentPage = 1;
     this.characters = [];
+    this.isLoading = false;
+
+    if (this.infiniteScroll) {
+      this.infiniteScroll.disabled = false;
+    }
+
     this.loadData();
   }
 
-  // R6: Cargar y alternar favoritos con Capacitor Preferences
-  async loadFavorites() {
-    const { value } = await Preferences.get({ key: 'favorites' });
-    this.favorites = value ? JSON.parse(value) : [];
-  }
-
-  async toggleFavorite(characterId: number, event: Event) {
+  toggleFavorite(character: Character, event: Event) {
     event.stopPropagation();
-    if (this.isFavorite(characterId)) {
-      this.favorites = this.favorites.filter(id => id !== characterId);
-    } else {
-      this.favorites.push(characterId);
-    }
-    await Preferences.set({ key: 'favorites', value: JSON.stringify(this.favorites) });
-  }
-
-  isFavorite(characterId: number): boolean {
-    return this.favorites.includes(characterId);
+    this.favService.toggleFavorite(character);
   }
 }
