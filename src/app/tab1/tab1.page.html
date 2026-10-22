@@ -1,17 +1,77 @@
-<ion-header [translucent]="true">
-  <ion-toolbar>
-    <ion-title>
-      Tab 1
-    </ion-title>
+<ion-header>
+  <ion-toolbar color="primary">
+    <ion-title>Rick & Morty Catalog</ion-title>
+  </ion-toolbar>
+  <ion-toolbar color="primary">
+    <!-- R3: Búsqueda con ion-searchbar -->
+    <ion-searchbar 
+      placeholder="Buscar personaje..." 
+      (ionInput)="onSearchChange($event)" 
+      [debounce]="500">
+    </ion-searchbar>
   </ion-toolbar>
 </ion-header>
 
-<ion-content [fullscreen]="true">
-  <ion-header collapse="condense">
-    <ion-toolbar>
-      <ion-title size="large">Tab 1</ion-title>
-    </ion-toolbar>
-  </ion-header>
+<ion-content class="ion-padding">
 
-  <app-explore-container name="Tab 1 page"></app-explore-container>
+  <!-- R5: Loading inicial -->
+  @if (isLoading && characters.length === 0) {
+    <div class="ion-text-center ion-padding">
+      <ion-spinner name="crescent"></ion-spinner>
+      <p>Cargando información...</p>
+    </div>
+  }
+
+  <!-- R5: Estado de Error de Red con botón de Reintento -->
+  @if (hasError && characters.length === 0) {
+    <div class="ion-text-center ion-padding">
+      <p>Ocurrió un error al cargar los datos.</p>
+      <ion-button color="danger" (click)="loadData()">
+        <ion-icon name="reload-outline" slot="start"></ion-icon>
+        Reintentar
+      </ion-button>
+    </div>
+  }
+
+  <!-- R5: Estado de Lista Vacía -->
+  @if (!isLoading && !hasError && characters.length === 0) {
+    <div class="ion-text-center ion-padding">
+      <p>No se encontraron resultados para la búsqueda.</p>
+    </div>
+  }
+
+  <!-- R1: Listado de tarjetas con mínimo 2 atributos -->
+  <ion-list>
+    @for (item of characters; track item.id) {
+      <ion-item button lines="full">
+        <ion-avatar slot="start">
+          <img [src]="item.image" [alt]="item.name" />
+        </ion-avatar>
+        <ion-label>
+          <h2>{{ item.name }}</h2>
+          <p>Especie: {{ item.species }} | Género: {{ item.gender }}</p>
+          <p>Ubicación: {{ item.location.name }}</p>
+        </ion-label>
+        <ion-badge [color]="item.status === 'Alive' ? 'success' : 'danger'" slot="end">
+          {{ item.status }}
+        </ion-badge>
+        <!-- R6: Botón de Favoritos -->
+        <ion-button fill="clear" slot="end" (click)="toggleFavorite(item.id, $event)">
+          <ion-icon 
+            [name]="isFavorite(item.id) ? 'star' : 'star-outline'" 
+            [color]="isFavorite(item.id) ? 'warning' : 'medium'">
+          </ion-icon>
+        </ion-button>
+      </ion-item>
+    }
+  </ion-list>
+
+  <!-- R2: Infinite Scrolling Obligatorio -->
+  <ion-infinite-scroll (ionInfinite)="loadMore($event)">
+    <ion-infinite-scroll-content 
+      loadingSpinner="bubbles" 
+      loadingText="Cargando más personajes...">
+    </ion-infinite-scroll-content>
+  </ion-infinite-scroll>
+
 </ion-content>
