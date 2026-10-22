@@ -1,0 +1,7 @@
+{
+  "name": "RickAPI",
+  "integrations": {
+    "capacitor": {}
+  },
+  "type": "angular-standalone"
+}
